@@ -1,0 +1,11 @@
+{
+  "name": "optogenetics-interference-focusing",
+  "version": "0.1.0",
+  "description": "Feasibility analysis and phased-array planner for focusing a wave to a single point inside the brain by interference.",
+  "type": "module",
+  "scripts": {
+    "test": "node test/run.js",
+    "serve": "node -e \"const{createServer}=require('node:http'),{readFile}=require('node:fs'),{extname,join,normalize}=require('node:path');const T={'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.svg':'image/svg+xml'};createServer((q,s)=>{let p=decodeURIComponent(q.url.split('?')[0]);if(p==='/')p='/index.html';const f=join(process.cwd(),normalize(p).replace(/^(\\.\\.[\\/\\\\])+/,''));readFile(f,(e,d)=>{if(e){s.writeCode=404;s.statusCode=404;return s.end('404')}s.setHeader('Content-Type',T[extname(f)]||'application/octet-stream');s.end(d)})}).listen(8080,()=>console.log('http://localhost:8080'))\""
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Interference Focusing in Brain</title>
+<meta name="description" content="Can you focus a wave to one point deep in the brain by interference from outside the skull? A physics planner that answers with numbers.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='13'>&#9678;</text></svg>">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="mark">&#9678;</span>
+    <div>
+      <h1>Interference Focusing in Brain</h1>
+      <p class="sub">Phased-array planner and feasibility check for steering a wave to one point inside a head</p>
+    </div>
+  </div>
+  <div id="verdict" class="verdict verdict--pending">
+    <span class="verdict__label">computing</span>
+    <span class="verdict__text">&hellip;</span>
+  </div>
+</header>
+
+<main>
+  <!-- ============ CONTROLS ============ -->
+  <section class="panel controls" aria-label="Controls">
+
+    <fieldset>
+      <legend>Wave</legend>
+      <div class="segmented" role="radiogroup" aria-label="Wave type">
+        <button type="button" data-mode="optical" class="seg is-active">Light</button>
+        <button type="button" data-mode="acoustic" class="seg">Ultrasound</button>
+      </div>
+
+      <div data-when="optical">
+        <label class="row">
+          <span>Wavelength <output id="wlOut">630 nm</output></span>
+          <input type="range" id="wavelength" min="400" max="1400" step="5" value="630">
+        </label>
+        <p class="hint" id="wlHint"></p>
+
+        <label class="row">
+          <span>Source</span>
+          <select id="sourceType">
+            <option value="laser">Coherent laser, split N ways</option>
+            <option value="led">Independent LEDs</option>
+          </select>
+        </label>
+
+        <label class="row">
+          <span>Opsin</span>
+          <select id="opsin"></select>
+        </label>
+      </div>
+
+      <div data-when="acoustic" hidden>
+        <label class="row">
+          <span>Frequency <output id="freqOut">650 kHz</output></span>
+          <input type="range" id="frequency" min="100" max="2000" step="10" value="650">
+        </label>
+        <p class="hint" id="freqHint"></p>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Head</legend>
+      <label class="row">
+        <span>Anatomy</span>
+        <select id="headPreset">
+          <option value="humanAdult">Human adult (92 mm radius)</option>
+          <option value="mouse">Mouse (5.6 mm radius)</option>
+        </select>
+      </label>
+      <label class="row">
+        <span>Wanted irradiance at focus <output id="irrOut">0.01 mW/mm&sup2;</output></span>
+        <input type="range" id="irradiance" min="-3" max="2" step="0.1" value="-2">
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Emitter array</legend>
+      <label class="row">
+        <span>Layout</span>
+        <select id="layout">
+          <option value="sphericalCap">Spherical cap, Fibonacci (aperiodic)</option>
+          <option value="rings">Concentric rings (periodic)</option>
+          <option value="fullSphere">Full sphere (theoretical bound)</option>
+        </select>
+      </label>
+      <label class="row">
+        <span>Elements <output id="countOut">256</output></span>
+        <input type="range" id="count" min="4" max="1024" step="4" value="256">
+      </label>
+      <label class="row">
+        <span>Cap half-angle <output id="angleOut">75&deg;</output></span>
+        <input type="range" id="halfAngle" min="10" max="180" step="5" value="75">
+      </label>
+      <label class="row">
+        <span>Standoff from scalp <output id="standoffOut">12 mm</output></span>
+        <input type="range" id="standoff" min="0" max="60" step="1" value="12">
+      </label>
+      <label class="row">
+        <span>Element aperture <output id="apertureOut">25 mm&sup2;</output></span>
+        <input type="range" id="aperture" min="1" max="400" step="1" value="25">
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Targets</legend>
+      <p class="hint">Click the map to move the active target. Shift-click to add one.</p>
+      <div id="targetList" class="targets"></div>
+      <div class="btnrow">
+        <button type="button" id="addTarget" class="btn">Add target</button>
+        <button type="button" id="clearTargets" class="btn btn--ghost">Keep one</button>
+      </div>
+      <label class="row">
+        <span>Solver</span>
+        <select id="solver">
+          <option value="phaseConjugation">Phase conjugation (max peak)</option>
+          <option value="weightedGS">Weighted Gerchberg&ndash;Saxton (equal foci)</option>
+          <option value="lcmv">Constrained beamformer (suppress elsewhere)</option>
+        </select>
+      </label>
+      <p class="hint" id="solverHint"></p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Display</legend>
+      <label class="row">
+        <span>Plane</span>
+        <select id="plane">
+          <option value="coronal">Coronal (x&ndash;z)</option>
+          <option value="axial">Axial (x&ndash;y)</option>
+          <option value="sagittal">Sagittal (y&ndash;z)</option>
+        </select>
+      </label>
+      <label class="row">
+        <span>Resolution <output id="resOut">220 px</output></span>
+        <input type="range" id="resolution" min="60" max="400" step="20" value="220">
+      </label>
+      <label class="row">
+        <span>Dynamic range <output id="drOut">50 dB</output></span>
+        <input type="range" id="dynamicRange" min="10" max="90" step="5" value="50">
+      </label>
+      <label class="check"><input type="checkbox" id="logScale" checked> Logarithmic scale</label>
+      <label class="check"><input type="checkbox" id="showEmitters" checked> Show emitters</label>
+      <label class="check"><input type="checkbox" id="showShells" checked> Show tissue shells</label>
+      <label class="check"><input type="checkbox" id="showHotspots" checked> Mark extra hotspots</label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Presets</legend>
+      <div class="btnrow btnrow--wrap">
+        <button type="button" class="btn btn--ghost" data-preset="proposal">The original idea</button>
+        <button type="button" class="btn btn--ghost" data-preset="bestLight">Best case for light</button>
+        <button type="button" class="btn btn--ghost" data-preset="ultrasound">Ultrasound, same geometry</button>
+        <button type="button" class="btn btn--ghost" data-preset="mouse">Mouse, red light</button>
+        <button type="button" class="btn btn--ghost" data-preset="window">Cranial window</button>
+      </div>
+    </fieldset>
+  </section>
+
+  <!-- ============ MAP ============ -->
+  <section class="panel stage" aria-label="Field map">
+    <div class="stage__head">
+      <h2 id="stageTitle">Intensity through the target</h2>
+      <div class="legend">
+        <span class="legend__min">floor</span>
+        <canvas id="colorbar" width="140" height="10"></canvas>
+        <span class="legend__max">peak</span>
+      </div>
+    </div>
+
+    <div class="canvaswrap">
+      <canvas id="map" width="700" height="700"></canvas>
+      <div id="spinner" class="spinner" hidden></div>
+      <div id="readout" class="readout"></div>
+    </div>
+
+    <div class="profiles">
+      <div>
+        <h3>Depth profile <small>along the beam</small></h3>
+        <canvas id="profRadial" width="330" height="110"></canvas>
+      </div>
+      <div>
+        <h3>Transverse profile <small>across the beam</small></h3>
+        <canvas id="profTrans" width="330" height="110"></canvas>
+      </div>
+    </div>
+
+    <div id="keyNumbers" class="keynums"></div>
+  </section>
+
+  <!-- ============ VERDICT ============ -->
+  <section class="panel findings" aria-label="Feasibility findings">
+    <h2>What the physics says</h2>
+    <div id="findings"></div>
+
+    <details class="layers">
+      <summary>Tissue properties at this drive</summary>
+      <div id="layerTable"></div>
+    </details>
+
+    <details class="layers">
+      <summary>Emitter placement table</summary>
+      <div class="btnrow">
+        <button type="button" id="downloadCsv" class="btn">Download CSV</button>
+        <button type="button" id="downloadJson" class="btn btn--ghost">Download JSON</button>
+      </div>
+      <div id="emitterTable" class="tablewrap"></div>
+    </details>
+  </section>
+</main>
+
+<footer class="foot">
+  <p>
+    Straight-ray layered-sphere model. Numbers are traceable to the sources listed in
+    <a href="docs/PHYSICS.md">docs/PHYSICS.md</a> and <a href="docs/BIOLOGY.md">docs/BIOLOGY.md</a>.
+    This is a feasibility and teaching tool, not a treatment planning system, and nothing here
+    is validated for use on a living subject.
+  </p>
+</footer>
+
+<script type="module" src="app/ui.js"></script>
+</body>
+</html>
